@@ -23,6 +23,9 @@ public class TestControl {
         return R.ok(user);
     }
 
-
+    @DeleteMapping("delUser")
+    public R<String> addUser(@Valid  Long userId) {
+        return R.ok("ok");
+    }
 
 }
