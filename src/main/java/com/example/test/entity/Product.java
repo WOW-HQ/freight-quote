@@ -13,6 +13,10 @@ public class Product {
 
     private String name;
 
+    private String nameRu;
+
+    private String nameEn;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

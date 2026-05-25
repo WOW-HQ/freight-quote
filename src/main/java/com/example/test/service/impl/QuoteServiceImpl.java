@@ -70,6 +70,8 @@ public class QuoteServiceImpl implements QuoteService {
                 .unitPrice(rule.getUnitPrice())
                 .totalPrice(totalPrice)
                 .productName(product.getName())
+                .productNameRu(product.getNameRu())
+                .productNameEn(product.getNameEn())
                 .build();
     }
 

@@ -18,4 +18,6 @@ public class QuoteResponseDTO {
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
     private String productName;
+    private String productNameRu;
+    private String productNameEn;
 }

@@ -14,7 +14,9 @@ DROP TABLE IF EXISTS `product`;
 
 CREATE TABLE `product` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品名',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品名(中文)',
+  `name_ru` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品名(俄语)',
+  `name_en` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品名(英语)',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted` tinyint NOT NULL DEFAULT '0',
@@ -36,8 +38,8 @@ CREATE TABLE `price_rule` (
 
 -- 品名数据
 INSERT INTO `product` VALUES
-  (1,'普货','2026-05-25 14:43:35','2026-05-25 14:43:35',0),
-  (2,'冷链','2026-05-25 14:43:35','2026-05-25 14:43:35',0);
+  (1,'普货','Генеральный груз','General Cargo','2026-05-25 14:43:35','2026-05-25 14:43:35',0),
+  (2,'冷链','Холодовая цепь','Cold Chain','2026-05-25 14:43:35','2026-05-25 14:43:35',0);
 
 -- 密度区间单价数据
 INSERT INTO `price_rule` VALUES
