@@ -1,4 +1,4 @@
-package com.example.test.pojo.user;
+package com.example.test.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
@@ -6,18 +6,12 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("sys_user")
-public class SysUser {
+@TableName("product")
+public class Product {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String username;
-    private String password;
-    private String nickname;
-    private String phone;
-    private String email;
-    private Long gender;
-    private String avatar;
-    private Long status;
+
+    private String name;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

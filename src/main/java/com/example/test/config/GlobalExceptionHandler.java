@@ -17,6 +17,11 @@ public class GlobalExceptionHandler {
         return R.fail(400, msg);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public R<Void> handleIllegalArgument(IllegalArgumentException e) {
+        return R.fail(400, e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public R<Void> handleException(Exception e) {
         return R.fail("服务器内部错误: " + e.getMessage());
