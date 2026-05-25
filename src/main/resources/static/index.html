@@ -552,6 +552,8 @@
     };
 
     let currentLang = localStorage.getItem('lang') || 'zh';
+    const productsMap = new Map(); // id -> {id, name, nameRu, nameEn}
+    let lastProductId = null;
 
     function t(key) {
         return i18n[currentLang]?.[key] || i18n.zh[key] || key;
@@ -577,16 +579,7 @@
         if (firstOpt && firstOpt.value === '') {
             firstOpt.textContent = t('placeholderProduct');
         }
-        for (let i = 1; i < productSelect.options.length; i++) {
-            const opt = productSelect.options[i];
-            if (currentLang === 'ru' && opt.dataset.nameRu) {
-                opt.textContent = opt.dataset.nameRu;
-            } else if (currentLang === 'en' && opt.dataset.nameEn) {
-                opt.textContent = opt.dataset.nameEn;
-            } else if (opt.dataset.name) {
-                opt.textContent = opt.dataset.name;
-            }
-        }
+        renderProductOptions();
         document.getElementById('lblProduct').textContent = t('resProduct');
         document.getElementById('lblVolume').textContent = t('resVolume');
         document.getElementById('lblDensity').textContent = t('resDensity');
@@ -652,27 +645,30 @@
     document.getElementById('poemLine').textContent = today.line;
     document.getElementById('poemSource').textContent = today.source;
 
-    function getProductDisplayName(p) {
+    function productDisplayName(p) {
         if (currentLang === 'ru') return p.nameRu || p.name;
         if (currentLang === 'en') return p.nameEn || p.name;
         return p.name;
+    }
+
+    function renderProductOptions() {
+        const select = document.getElementById('productId');
+        while (select.options.length > 1) select.remove(1);
+        productsMap.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = productDisplayName(p);
+            select.appendChild(opt);
+        });
     }
 
     async function loadProducts() {
         try {
             const res = await fetch(API + '/products');
             const json = await res.json();
-            const select = document.getElementById('productId');
             if (json.code === 200 && json.data && json.data.length > 0) {
-                json.data.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.id;
-                    opt.dataset.name = p.name;
-                    opt.dataset.nameRu = p.nameRu || p.name;
-                    opt.dataset.nameEn = p.nameEn || p.name;
-                    opt.textContent = getProductDisplayName(p);
-                    select.appendChild(opt);
-                });
+                json.data.forEach(p => productsMap.set(p.id, p));
+                renderProductOptions();
             }
         } catch (e) {
             showError(t('loadFailed') + e.message);
@@ -694,6 +690,8 @@
             showError(t('fillAll'));
             return;
         }
+
+        lastProductId = parseInt(productId);
 
         const btn = document.getElementById('calcBtn');
         btn.disabled = true;
@@ -737,8 +735,9 @@
 
     function showResult(data) {
         let displayName = data.productName;
-        if (currentLang === 'ru') displayName = data.productNameRu || data.productName;
-        else if (currentLang === 'en') displayName = data.productNameEn || data.productName;
+        if (lastProductId && productsMap.has(lastProductId)) {
+            displayName = productDisplayName(productsMap.get(lastProductId));
+        }
         document.getElementById('resProduct').textContent = displayName;
         document.getElementById('resVolume').textContent = data.volume + ' m³';
         document.getElementById('resDensity').textContent = data.density + ' kg/m³';

@@ -9,10 +9,7 @@ CREATE DATABASE IF NOT EXISTS my_db
 
 USE my_db;
 
-DROP TABLE IF EXISTS `price_rule`;
-DROP TABLE IF EXISTS `product`;
-
-CREATE TABLE `product` (
+CREATE TABLE IF NOT EXISTS `product` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品名(中文)',
   `name_ru` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品名(俄语)',
@@ -23,7 +20,7 @@ CREATE TABLE `product` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='品名表';
 
-CREATE TABLE `price_rule` (
+CREATE TABLE IF NOT EXISTS `price_rule` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `product_id` bigint NOT NULL,
   `min_density` decimal(10,4) NOT NULL COMMENT '密度下限(含)',
@@ -36,13 +33,13 @@ CREATE TABLE `price_rule` (
   KEY `idx_product_density` (`product_id`,`min_density`,`max_density`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='密度区间单价表';
 
--- 品名数据
-INSERT INTO `product` VALUES
+-- 品名数据（幂等插入，已存在则跳过）
+INSERT IGNORE INTO `product` VALUES
   (1,'普货','Генеральный груз','General Cargo','2026-05-25 14:43:35','2026-05-25 14:43:35',0),
   (2,'冷链','Холодовая цепь','Cold Chain','2026-05-25 14:43:35','2026-05-25 14:43:35',0);
 
--- 密度区间单价数据
-INSERT INTO `price_rule` VALUES
+-- 密度区间单价数据（幂等插入，已存在则跳过）
+INSERT IGNORE INTO `price_rule` VALUES
   (1,1,0.0000,100.0000,5.00,'2026-05-25 14:43:35','2026-05-25 14:43:35',0),
   (2,1,100.0000,500.0000,4.50,'2026-05-25 14:43:35','2026-05-25 14:43:35',0),
   (3,1,500.0000,9999.0000,4.00,'2026-05-25 14:43:35','2026-05-25 14:43:35',0),
