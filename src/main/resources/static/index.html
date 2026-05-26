@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>运输费报价系统</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
             margin: 0;
@@ -21,7 +22,8 @@
             align-items: center;
             padding: 20px;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         /* 动画几何线条层 */
@@ -69,10 +71,57 @@
             border-radius: 12px;
             padding: 40px;
             width: 100%;
-            max-width: 520px;
+            max-width: 580px;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
             position: relative;
             z-index: 1;
+        }
+
+        .map-section {
+            margin-top: 24px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e8ecf1;
+            display: none;
+        }
+        .map-section.show {
+            display: block;
+        }
+        #map {
+            width: 100%;
+            height: 360px;
+        }
+
+        .route-info {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a3c4a, #2c5364);
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 13px;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            letter-spacing: 1px;
+        }
+        .route-info b {
+            color: #f1c40f;
+        }
+
+        .marker-label {
+            background: rgba(255,255,255,0.93) !important;
+            border: none !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif !important;
+            font-size: 11px !important;
+            padding: 3px 7px !important;
+            border-radius: 3px !important;
+            white-space: nowrap;
+        }
+        .marker-label::before { display: none; }
+
+        .leaflet-popup-content {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            font-size: 13px;
         }
 
         .lang-switcher {
@@ -290,7 +339,42 @@
         </div>
     </div>
 
+    <div class="form-row">
+        <div class="form-group">
+            <label id="lblOriginCountry">出发国家</label>
+            <select id="originCountry" onchange="onOriginCountryChange()">
+                <option value="">-- 请选择国家 --</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label id="lblOriginCity">出发城市</label>
+            <select id="originCity" onchange="onLocationChange()">
+                <option value="">-- 请先选择国家 --</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label id="lblDestCountry">到达国家</label>
+            <select id="destCountry" onchange="onDestCountryChange()">
+                <option value="">-- 请选择国家 --</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label id="lblDestCity">到达城市</label>
+            <select id="destCity" onchange="onLocationChange()">
+                <option value="">-- 请先选择国家 --</option>
+            </select>
+        </div>
+    </div>
+
     <button class="btn" id="calcBtn" onclick="calculate()">计 算 报 价</button>
+
+    <div class="map-section" id="mapSection">
+        <div class="route-info" id="routeInfo" style="display:none;"></div>
+        <div id="map"></div>
+    </div>
 
     <div class="error-msg" id="errorMsg"></div>
 
@@ -461,6 +545,103 @@
 <script>
     const API = '/api/quote';
 
+    // ===== 城市坐标数据 =====
+    const citiesData = {
+        '中国': {
+            labelZh: '中国', labelRu: 'Китай', labelEn: 'China',
+            cities: {
+                '北京': [39.9042, 116.4074], '上海': [31.2304, 121.4737],
+                '广州': [23.1291, 113.2644], '深圳': [22.5431, 114.0579],
+                '成都': [30.5728, 104.0668], '重庆': [29.4316, 106.9123],
+                '武汉': [30.5928, 114.3055], '西安': [34.3416, 108.9398],
+                '乌鲁木齐': [43.8256, 87.6168], '哈尔滨': [45.8038, 126.5350],
+                '郑州': [34.7466, 113.6254], '天津': [39.3434, 117.3616],
+                '杭州': [30.2741, 120.1551], '南京': [32.0603, 118.7969],
+                '厦门': [24.4798, 118.0894], '青岛': [36.0671, 120.3826],
+                '大连': [38.9140, 121.6147], '长沙': [28.2282, 112.9388],
+                '昆明': [25.0389, 102.7183], '兰州': [36.0611, 103.8343],
+                '呼和浩特': [40.8424, 111.7490], '沈阳': [41.8057, 123.4315],
+                '喀什': [39.4677, 75.9897], '霍尔果斯': [44.1367, 80.4146],
+                '满洲里': [49.5975, 117.3794], '绥芬河': [44.4123, 131.1523]
+            }
+        },
+        '俄罗斯': {
+            labelZh: '俄罗斯', labelRu: 'Россия', labelEn: 'Russia',
+            cities: {
+                '莫斯科': [55.7558, 37.6173], '圣彼得堡': [59.9343, 30.3351],
+                '新西伯利亚': [55.0084, 82.9357], '叶卡捷琳堡': [56.8389, 60.6057],
+                '喀山': [55.7879, 49.1233], '下诺夫哥罗德': [56.2965, 43.9361],
+                '车里雅宾斯克': [55.1644, 61.4368], '鄂木斯克': [54.9885, 73.3242],
+                '萨马拉': [53.1959, 50.1002], '顿河畔罗斯托夫': [47.2357, 39.7015],
+                '乌法': [54.7388, 55.9721], '克拉斯诺亚尔斯克': [56.0097, 92.7917],
+                '彼尔姆': [58.0105, 56.2502], '沃罗涅日': [51.6720, 39.1843],
+                '伏尔加格勒': [48.7080, 44.5133], '伊尔库茨克': [52.2869, 104.3055],
+                '符拉迪沃斯托克': [43.1155, 131.8855], '秋明': [57.1522, 65.5272],
+                '托木斯克': [56.4977, 84.9744], '布拉戈维申斯克': [50.2796, 127.5407]
+            }
+        },
+        '哈萨克斯坦': {
+            labelZh: '哈萨克斯坦', labelRu: 'Казахстан', labelEn: 'Kazakhstan',
+            cities: {
+                '阿斯塔纳': [51.1694, 71.4491], '阿拉木图': [43.2220, 76.8512],
+                '奇姆肯特': [42.3417, 69.5901], '卡拉干达': [49.8019, 73.1021],
+                '阿克托别': [50.2839, 57.1670], '塔拉兹': [42.8984, 71.3979],
+                '巴甫洛达尔': [52.2873, 76.9674], '乌斯季卡缅诺戈尔斯克': [49.9488, 82.6284],
+                '塞米伊': [50.4113, 80.2277], '阿特劳': [47.0945, 51.9237],
+                '科斯塔奈': [53.2198, 63.6354], '克孜勒奥尔达': [44.8488, 65.4823],
+                '乌拉尔斯克': [51.2334, 51.3690], '彼得罗巴甫洛夫斯克': [54.8730, 69.1505],
+                '阿克套': [43.6500, 51.1666]
+            }
+        },
+        '吉尔吉斯斯坦': {
+            labelZh: '吉尔吉斯斯坦', labelRu: 'Кыргызстан', labelEn: 'Kyrgyzstan',
+            cities: {
+                '比什凯克': [42.8746, 74.5698], '奥什': [40.5283, 72.7985],
+                '贾拉拉巴德': [40.9331, 73.0023], '卡拉科尔': [42.4891, 78.3936],
+                '托克马克': [42.8410, 75.3015], '纳伦': [41.4287, 76.0033],
+                '塔拉斯': [42.5220, 72.2421], '巴特肯': [40.0683, 70.8210]
+            }
+        },
+        '塔吉克斯坦': {
+            labelZh: '塔吉克斯坦', labelRu: 'Таджикистан', labelEn: 'Tajikistan',
+            cities: {
+                '杜尚别': [38.5598, 68.7870], '苦盏': [40.2826, 69.6251],
+                '博赫塔尔': [37.8367, 68.7799], '库利亚布': [37.9096, 69.7843],
+                '霍罗格': [37.4887, 71.5496], '伊斯塔拉夫尚': [39.9187, 69.0015],
+                '图尔孙扎德': [38.5140, 68.2321]
+            }
+        },
+        '土库曼斯坦': {
+            labelZh: '土库曼斯坦', labelRu: 'Туркменистан', labelEn: 'Turkmenistan',
+            cities: {
+                '阿什哈巴德': [37.9601, 58.3261], '土库曼纳巴德': [39.0744, 63.5786],
+                '达绍古兹': [41.8358, 59.9650], '马雷': [37.5878, 61.8553],
+                '巴尔坎纳巴德': [39.5148, 54.3671], '土库曼巴希': [40.0125, 52.9896]
+            }
+        },
+        '乌兹别克斯坦': {
+            labelZh: '乌兹别克斯坦', labelRu: 'Узбекистан', labelEn: 'Uzbekistan',
+            cities: {
+                '塔什干': [41.2995, 69.2401], '撒马尔罕': [39.6270, 66.9750],
+                '布哈拉': [39.7680, 64.4233], '纳曼干': [40.9983, 71.6726],
+                '安集延': [40.7833, 72.3333], '费尔干纳': [40.3864, 71.7864],
+                '努库斯': [42.4611, 59.6161], '卡尔希': [38.8667, 65.8000],
+                '乌尔根奇': [41.5500, 60.6333], '吉扎克': [40.1167, 67.8500],
+                '铁尔梅兹': [37.2167, 67.2833]
+            }
+        }
+    };
+
+    function countryDisplayName(key) {
+        const c = citiesData[key];
+        if (!c) return key;
+        if (currentLang === 'ru') return c.labelRu;
+        if (currentLang === 'en') return c.labelEn;
+        return c.labelZh;
+    }
+
+    const countryOrder = ['中国', '俄罗斯', '哈萨克斯坦', '吉尔吉斯斯坦', '塔吉克斯坦', '土库曼斯坦', '乌兹别克斯坦'];
+
     const i18n = {
         zh: {
             pageTitle: '运 输 费 报 价',
@@ -489,7 +670,18 @@
             rateLimit: '请求过于频繁，请稍后再试',
             calcFailed: '计算失败',
             networkError: '网络错误：',
-            loadFailed: '加载品名列表失败：'
+            loadFailed: '加载品名列表失败：',
+            originCountry: '出发国家',
+            originCity: '出发城市',
+            destCountry: '到达国家',
+            destCity: '到达城市',
+            selectCountry: '-- 请选择国家 --',
+            selectCityFirst: '-- 请先选择国家 --',
+            selectCity: '-- 请选择城市 --',
+            routeDist: '公路里程',
+            routeTime: '预计驾驶时间',
+            routeLoading: '正在规划路线...',
+            routeUnavailable: '路线规划不可用（显示直线距离）'
         },
         ru: {
             pageTitle: 'Расчёт перевозки',
@@ -518,7 +710,18 @@
             rateLimit: 'Слишком много запросов, попробуйте позже',
             calcFailed: 'Ошибка расчёта',
             networkError: 'Ошибка сети: ',
-            loadFailed: 'Не удалось загрузить список товаров: '
+            loadFailed: 'Не удалось загрузить список товаров: ',
+            originCountry: 'Страна отправления',
+            originCity: 'Город отправления',
+            destCountry: 'Страна назначения',
+            destCity: 'Город назначения',
+            selectCountry: '-- Выберите страну --',
+            selectCityFirst: '-- Сначала выберите страну --',
+            selectCity: '-- Выберите город --',
+            routeDist: 'Дистанция',
+            routeTime: 'Расчётное время',
+            routeLoading: 'Прокладка маршрута...',
+            routeUnavailable: 'Маршрут недоступен (прямая линия)'
         },
         en: {
             pageTitle: 'Freight Quote',
@@ -547,7 +750,18 @@
             rateLimit: 'Too many requests, please try again later',
             calcFailed: 'Calculation failed',
             networkError: 'Network error: ',
-            loadFailed: 'Failed to load product list: '
+            loadFailed: 'Failed to load product list: ',
+            originCountry: 'Origin Country',
+            originCity: 'Origin City',
+            destCountry: 'Destination Country',
+            destCity: 'Destination City',
+            selectCountry: '-- Select Country --',
+            selectCityFirst: '-- Select Country First --',
+            selectCity: '-- Select City --',
+            routeDist: 'Driving Distance',
+            routeTime: 'Est. Driving Time',
+            routeLoading: 'Planning route...',
+            routeUnavailable: 'Route unavailable (straight line)'
         }
     };
 
@@ -588,11 +802,263 @@
         if (!btn.dataset.loading || btn.dataset.loading !== 'true') {
             btn.textContent = t('calcBtn');
         }
+        // 刷新地图相关标签
+        refreshCountrySelectors();
+        updateDropdownPlaceholders();
+        // 刷新地图（重新绘制标记的文字标注）
+        if (map && document.getElementById('mapSection').classList.contains('show')) {
+            onLocationChange();
+        }
+        refreshRoutePanel();
+    }
+
+    function refreshRoutePanel() {
+        var info = document.getElementById('routeInfo');
+        if (!info || !info._routeData) return;
+        var d = info._routeData;
+        var oCity = document.getElementById('originCity').value;
+        var dCity = document.getElementById('destCity').value;
+        info.innerHTML = '<span>' + (oCity || '') + ' <b style="font-size:16px;margin:0 4px;">→</b> ' + (dCity || '') + '</span>' +
+            '<span>' + t('routeDist') + ': <b>' + d.distKm + ' km</b></span>';
+    }
+
+    function updateDropdownPlaceholders() {
+        ['originCountry', 'originCity', 'destCountry', 'destCity'].forEach(id => {
+            const sel = document.getElementById(id);
+            const opt = sel.options[0];
+            if (opt && opt.value === '') {
+                if (id.includes('Country')) opt.textContent = t('selectCountry');
+                else {
+                    const countryVal = document.getElementById(id === 'originCity' ? 'originCountry' : 'destCountry').value;
+                    opt.textContent = countryVal ? t('selectCity') : t('selectCityFirst');
+                }
+            }
+        });
+    }
+
+    // ===== 地图 =====
+    let map = null;
+    let originMarker = null;
+    let destMarker = null;
+    let routeLine = null;
+
+    function initCountrySelectors() {
+        const originSel = document.getElementById('originCountry');
+        const destSel = document.getElementById('destCountry');
+        originSel.innerHTML = '<option value="">' + t('selectCountry') + '</option>';
+        destSel.innerHTML = '<option value="">' + t('selectCountry') + '</option>';
+        countryOrder.forEach(key => {
+            const opt1 = document.createElement('option');
+            opt1.value = key;
+            opt1.textContent = countryDisplayName(key);
+            originSel.appendChild(opt1);
+            const opt2 = document.createElement('option');
+            opt2.value = key;
+            opt2.textContent = countryDisplayName(key);
+            destSel.appendChild(opt2);
+        });
+        resetCityDropdown('originCity');
+        resetCityDropdown('destCity');
+    }
+
+    function resetCityDropdown(id) {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">' + t('selectCityFirst') + '</option>';
+    }
+
+    function populateCityDropdown(countryKey, selectId) {
+        const sel = document.getElementById(selectId);
+        sel.innerHTML = '<option value="">' + t('selectCity') + '</option>';
+        if (!countryKey || !citiesData[countryKey]) return;
+        const cityNames = Object.keys(citiesData[countryKey].cities);
+        cityNames.sort((a, b) => a.localeCompare(b, 'zh'));
+        cityNames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+        });
+    }
+
+    function onOriginCountryChange() {
+        const country = document.getElementById('originCountry').value;
+        populateCityDropdown(country, 'originCity');
+        onLocationChange();
+    }
+
+    function onDestCountryChange() {
+        const country = document.getElementById('destCountry').value;
+        populateCityDropdown(country, 'destCity');
+        onLocationChange();
+    }
+
+    function onLocationChange() {
+        const originCountry = document.getElementById('originCountry').value;
+        const originCity = document.getElementById('originCity').value;
+        const destCountry = document.getElementById('destCountry').value;
+        const destCity = document.getElementById('destCity').value;
+
+        const oCoord = (originCountry && originCity && citiesData[originCountry])
+            ? citiesData[originCountry].cities[originCity] : null;
+        const dCoord = (destCountry && destCity && citiesData[destCountry])
+            ? citiesData[destCountry].cities[destCity] : null;
+
+        const section = document.getElementById('mapSection');
+        if (!oCoord || !dCoord) {
+            section.classList.remove('show');
+            return;
+        }
+        section.classList.add('show');
+        updateMap(oCoord, dCoord, originCity, destCity);
+    }
+
+    function updateMap(oCoord, dCoord, oName, dName) {
+        if (!map) {
+            map = L.map('map', {
+                worldCopyJump: true
+            }).setView([48, 80], 3);
+
+            var primaryTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri &copy; OSM',
+                maxZoom: 18,
+                maxNativeZoom: 17
+            }).addTo(map);
+
+            var fallbackTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '',
+                maxZoom: 18,
+                maxNativeZoom: 19
+            });
+
+            var fallbackActive = false;
+            primaryTiles.on('tileerror', function() {
+                if (fallbackActive) return;
+                fallbackActive = true;
+                map.removeLayer(primaryTiles);
+                fallbackTiles.addTo(map);
+            });
+            fallbackTiles.on('tileerror', function() {
+                if (!fallbackActive) return;
+                fallbackActive = false;
+                map.removeLayer(fallbackTiles);
+                primaryTiles.addTo(map);
+            });
+
+            var dragTimeout;
+            map.on('dragend', function() {
+                clearTimeout(dragTimeout);
+                dragTimeout = setTimeout(function() {
+                    (fallbackActive ? fallbackTiles : primaryTiles).redraw();
+                }, 200);
+            });
+        }
+
+        // 清除旧图层
+        if (originMarker) map.removeLayer(originMarker);
+        if (destMarker) map.removeLayer(destMarker);
+        if (routeLine) map.removeLayer(routeLine);
+
+        // 出发地标记（绿色圆形 + 文字标注）
+        originMarker = L.layerGroup().addTo(map);
+        L.circleMarker(oCoord, {
+            radius: 9, fillColor: '#27ae60', color: '#fff',
+            weight: 3, fillOpacity: 1
+        }).addTo(originMarker);
+        L.tooltip({ permanent: true, direction: 'bottom', offset: [0, 14],
+            className: 'marker-label' })
+            .setContent('<b>' + oName + '</b>').setLatLng(oCoord).addTo(originMarker);
+
+        // 到达地标记（红色圆形 + 文字标注）
+        destMarker = L.layerGroup().addTo(map);
+        L.circleMarker(dCoord, {
+            radius: 9, fillColor: '#e74c3c', color: '#fff',
+            weight: 3, fillOpacity: 1
+        }).addTo(destMarker);
+        L.tooltip({ permanent: true, direction: 'bottom', offset: [0, 14],
+            className: 'marker-label' })
+            .setContent('<b>' + dName + '</b>').setLatLng(dCoord).addTo(destMarker);
+
+        // 生成贝塞尔弧线
+        var midLat = (oCoord[0] + dCoord[0]) / 2;
+        var midLng = (oCoord[1] + dCoord[1]) / 2;
+        var distDeg = Math.sqrt(
+            Math.pow(dCoord[0] - oCoord[0], 2) + Math.pow(dCoord[1] - oCoord[1], 2)
+        );
+        var curve = Math.min(distDeg * 0.3, 22);
+        var ctrlLat = midLat + curve;
+        var ctrlLng = midLng;
+
+        var arcPoints = [];
+        var steps = 80;
+        for (var t = 0; t <= 1; t += 1 / steps) {
+            var u = 1 - t;
+            arcPoints.push([
+                u * u * oCoord[0] + 2 * u * t * ctrlLat + t * t * dCoord[0],
+                u * u * oCoord[1] + 2 * u * t * ctrlLng + t * t * dCoord[1]
+            ]);
+        }
+
+        // 透明光线
+        routeLine = L.layerGroup().addTo(map);
+
+        L.polyline(arcPoints, {
+            color: '#5dade2', weight: 5, opacity: 0.18, smoothFactor: 1
+        }).addTo(routeLine);
+
+        L.polyline(arcPoints, {
+            color: '#85c1e9', weight: 2, opacity: 0.55, smoothFactor: 1
+        }).addTo(routeLine);
+
+        // 大圆距离 + 信息条
+        var R = 6371;
+        var d2r = Math.PI / 180;
+        var lat1 = oCoord[0] * d2r, lat2 = dCoord[0] * d2r;
+        var dlng = (dCoord[1] - oCoord[1]) * d2r;
+        var sd = Math.sin((lat2 - lat1) / 2);
+        var a = sd * sd + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dlng / 2) * Math.sin(dlng / 2);
+        var distKm = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+
+        var info = document.getElementById('routeInfo');
+        info.style.display = 'flex';
+        info._routeData = { distKm: distKm };
+        info.innerHTML = '<span>' + oName + ' <b style="font-size:16px;margin:0 4px;">→</b> ' + dName + '</span>' +
+            '<span>' + t('routeDist') + ': <b>' + distKm + ' km</b></span>';
+
+        // 视野：显式包含两个端点
+        map.invalidateSize();
+        var bounds = L.latLngBounds([oCoord, dCoord]);
+        map.fitBounds(bounds, { padding: [60, 60], animate: false });
+    }
+
+    function refreshCountrySelectors() {
+        const originCountryVal = document.getElementById('originCountry').value;
+        const destCountryVal = document.getElementById('destCountry').value;
+        const originCityVal = document.getElementById('originCity').value;
+        const destCityVal = document.getElementById('destCity').value;
+
+        // 刷新国家下拉框选项文本
+        const opts1 = document.getElementById('originCountry').querySelectorAll('option');
+        const opts2 = document.getElementById('destCountry').querySelectorAll('option');
+        countryOrder.forEach((key, i) => {
+            if (opts1[i + 1]) opts1[i + 1].textContent = countryDisplayName(key);
+            if (opts2[i + 1]) opts2[i + 1].textContent = countryDisplayName(key);
+        });
+
+        // 刷新城市下拉框
+        if (originCountryVal) {
+            populateCityDropdown(originCountryVal, 'originCity');
+            document.getElementById('originCity').value = originCityVal;
+        }
+        if (destCountryVal) {
+            populateCityDropdown(destCountryVal, 'destCity');
+            document.getElementById('destCity').value = destCityVal;
+        }
+        updateDropdownPlaceholders();
     }
 
     function setLabels() {
         const labels = document.querySelectorAll('.form-group label');
-        const keys = ['length', 'width', 'height', 'quantity', 'weight', 'product'];
+        const keys = ['length', 'width', 'height', 'quantity', 'weight', 'product', 'originCountry', 'originCity', 'destCountry', 'destCity'];
         labels.forEach((label, i) => {
             if (i < keys.length) {
                 label.textContent = t(keys[i]);
@@ -760,8 +1226,10 @@
         document.getElementById('errorMsg').classList.remove('show');
     }
 
+    initCountrySelectors();
     applyTranslations();
     loadProducts();
 </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
