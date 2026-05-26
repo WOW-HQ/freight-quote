@@ -1,11 +1,3 @@
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "reason": "commit 前自动触发 security-review 安全审计",
-        "prompt": "如果检测到用户要执行 git commit 命令（command 包含 'git commit'），先运行 /security-review 对当前改动做安全审查，审查通过后再执行 commit。如果不是 commit 命令，直接放行。"
-      }
-    ]
-  }
+  "hooks": {}
 }
