@@ -19,76 +19,80 @@
     <h1 id="pageTitle">运 输 费 报 价</h1>
     <p class="subtitle">Logistics Quotation System</p>
 
-    <div class="form-row">
-        <div class="form-group">
-            <label>长 (m)</label>
-            <input type="number" id="length" step="0.001" min="0.001" placeholder="例：2.00">
-        </div>
-        <div class="form-group">
-            <label>宽 (m)</label>
-            <input type="number" id="width" step="0.001" min="0.001" placeholder="例：1.20">
-        </div>
-    </div>
+    <div class="main-content">
+        <div class="form-panel">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>长 (m)</label>
+                    <input type="number" id="length" step="0.001" min="0.001" placeholder="例：2.00">
+                </div>
+                <div class="form-group">
+                    <label>宽 (m)</label>
+                    <input type="number" id="width" step="0.001" min="0.001" placeholder="例：1.20">
+                </div>
+            </div>
 
-    <div class="form-row">
-        <div class="form-group">
-            <label>高 (m)</label>
-            <input type="number" id="height" step="0.001" min="0.001" placeholder="例：1.50">
-        </div>
-        <div class="form-group">
-            <label>数量</label>
-            <input type="number" id="quantity" step="1" min="1" placeholder="例：10">
-        </div>
-    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>高 (m)</label>
+                    <input type="number" id="height" step="0.001" min="0.001" placeholder="例：1.50">
+                </div>
+                <div class="form-group">
+                    <label>数量</label>
+                    <input type="number" id="quantity" step="1" min="1" placeholder="例：10">
+                </div>
+            </div>
 
-    <div class="form-row">
-        <div class="form-group">
-            <label>重量 (kg)</label>
-            <input type="number" id="weight" step="0.01" min="0.01" placeholder="例：800">
-        </div>
-        <div class="form-group">
-            <label>品名</label>
-            <select id="productId">
-                <option value="">-- 请选择品名 --</option>
-            </select>
-        </div>
-    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>重量 (kg)</label>
+                    <input type="number" id="weight" step="0.01" min="0.01" placeholder="例：800">
+                </div>
+                <div class="form-group">
+                    <label>品名</label>
+                    <select id="productId">
+                        <option value="">-- 请选择品名 --</option>
+                    </select>
+                </div>
+            </div>
 
-    <div class="form-row">
-        <div class="form-group">
-            <label id="lblOriginCountry">出发国家</label>
-            <select id="originCountry" onchange="onOriginCountryChange()">
-                <option value="">-- 请选择国家 --</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label id="lblOriginCity">出发城市</label>
-            <select id="originCity" onchange="onLocationChange()">
-                <option value="">-- 请先选择国家 --</option>
-            </select>
-        </div>
-    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="lblOriginCountry">出发国家</label>
+                    <select id="originCountry" onchange="onOriginCountryChange()">
+                        <option value="">-- 请选择国家 --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="lblOriginCity">出发城市</label>
+                    <select id="originCity" onchange="onLocationChange()">
+                        <option value="">-- 请先选择国家 --</option>
+                    </select>
+                </div>
+            </div>
 
-    <div class="form-row">
-        <div class="form-group">
-            <label id="lblDestCountry">到达国家</label>
-            <select id="destCountry" onchange="onDestCountryChange()">
-                <option value="">-- 请选择国家 --</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label id="lblDestCity">到达城市</label>
-            <select id="destCity" onchange="onLocationChange()">
-                <option value="">-- 请先选择国家 --</option>
-            </select>
-        </div>
-    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="lblDestCountry">到达国家</label>
+                    <select id="destCountry" onchange="onDestCountryChange()">
+                        <option value="">-- 请选择国家 --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="lblDestCity">到达城市</label>
+                    <select id="destCity" onchange="onLocationChange()">
+                        <option value="">-- 请先选择国家 --</option>
+                    </select>
+                </div>
+            </div>
 
-    <button class="btn" id="calcBtn" onclick="calculate()">计 算 报 价</button>
+            <button class="btn" id="calcBtn" onclick="calculate()">计 算 报 价</button>
+        </div>
 
-    <div class="map-section" id="mapSection">
-        <div class="route-info" id="routeInfo" style="display:none;"></div>
-        <div id="map"></div>
+        <div class="map-section" id="mapSection">
+            <div class="route-info" id="routeInfo" style="display:none;"></div>
+            <div id="map"></div>
+        </div>
     </div>
 
     <div class="error-msg" id="errorMsg"></div>
