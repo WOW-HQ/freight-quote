@@ -127,6 +127,22 @@ body {
     font-size: 13px;
 }
 
+.page-contact {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    font-size: 13px;
+    color: #888;
+    letter-spacing: 0.5px;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.page-contact a {
+    color: inherit;
+    text-decoration: none;
+}
+
 .lang-switcher {
     display: flex;
     justify-content: flex-end;
