@@ -50,7 +50,7 @@ public class QuoteServiceImpl implements QuoteService {
                 new LambdaQueryWrapper<PriceRule>()
                         .eq(PriceRule::getProductId, dto.getProductId())
                         .le(PriceRule::getMinDensity, density)
-                        .gt(PriceRule::getMaxDensity, density)
+                        .ge(PriceRule::getMaxDensity, density)
                         .orderByAsc(PriceRule::getMinDensity)
                         .last("LIMIT 1")
         );

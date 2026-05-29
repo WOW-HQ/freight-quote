@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
-    <property name="LOG_PATH" value="./logs"/>
+    <property name="LOG_PATH" value="${LOG_PATH:-./logs}"/>
+    <property name="MAX_FILE_SIZE" value="100MB"/>
+    <property name="MAX_HISTORY" value="30"/>
 
+    <!-- ========== 同步 Appender ========== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
@@ -10,19 +13,21 @@
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="FILE_SYNC" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/app.log</file>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
             <charset>UTF-8</charset>
         </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/app.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
-            <maxHistory>30</maxHistory>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/app.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
     </appender>
 
-    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="ERROR_FILE_SYNC" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/error.log</file>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
@@ -31,26 +36,72 @@
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>
         </filter>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
             <maxHistory>60</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
     </appender>
 
+    <!-- ========== 异步 Appender（不阻塞业务线程） ========== -->
+    <appender name="FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE_SYNC"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+    </appender>
+
+    <appender name="ERROR_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ERROR_FILE_SYNC"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+    </appender>
+
+    <!-- ========== 框架噪音 —— 压到 WARN，不关心的不看 ========== -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.apache" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="com.baomidou.mybatisplus" level="WARN"/>
+    <logger name="org.mybatis" level="WARN"/>
+    <logger name="_org.springframework" level="WARN"/>
+    <logger name="o.s.b.w.s.WebApplicationContextInitializer" level="WARN"/>
+    <logger name="o.s.b.w.a.WelcomePageHandlerMapping" level="WARN"/>
+    <logger name="c.b.m.e.s.MybatisPlusApplicationContextAware" level="WARN"/>
+
+    <!-- ========== 环境配置 ========== -->
     <springProfile name="default">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
         </root>
+
+        <!-- SQL 日志：mapper 包 DEBUG 级别输出完整 SQL -->
+        <logger name="com.example.test.mapper" level="DEBUG"/>
+
+        <!-- 业务日志：请求过滤 + 控制器 + 服务 -->
+        <logger name="com.example.test.config.RequestLoggingFilter" level="INFO"/>
+        <logger name="com.example.test.controller" level="INFO"/>
+        <logger name="com.example.test.service" level="INFO"/>
         <logger name="com.example.test" level="DEBUG"/>
     </springProfile>
 
     <springProfile name="prod">
         <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
         </root>
+
+        <!-- 生产环境 SQL 只输出慢查询候选，mapper 改 TRACE 则彻底关掉 -->
+        <logger name="com.example.test.mapper" level="INFO"/>
+
+        <logger name="com.example.test.config.RequestLoggingFilter" level="INFO"/>
+        <logger name="com.example.test.controller" level="INFO"/>
+        <logger name="com.example.test.service" level="INFO"/>
         <logger name="com.example.test" level="INFO"/>
     </springProfile>
 </configuration>
