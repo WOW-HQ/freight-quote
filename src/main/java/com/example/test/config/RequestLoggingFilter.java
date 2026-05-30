@@ -13,12 +13,26 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 @Component
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
+
+    private static final Set<String> STATIC_PREFIXES = Set.of(
+            "/css/", "/js/", "/images/", "/static/", "/favicon.ico"
+    );
+    private static final Set<String> STATIC_SUFFIXES = Set.of(
+            ".map", ".css", ".js", ".png", ".ico", ".woff", ".woff2", ".ttf"
+    );
+
+    private static final Pattern SENSITIVE_KEY = Pattern.compile(
+            "(\"(?:password|passwd|token|secret|authorization|apiKey|api_key|accessToken|access_token)\"\\s*:\\s*\")[^\"]+",
+            Pattern.CASE_INSENSITIVE
+    );
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -45,11 +59,18 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     private boolean isStaticResource(HttpServletRequest request) {
         String uri = request.getRequestURI();
         if (uri == null) return false;
-        return uri.startsWith("/css/") || uri.startsWith("/js/")
-                || uri.startsWith("/images/") || uri.startsWith("/static/")
-                || uri.startsWith("/favicon.ico") || uri.endsWith(".map")
-                || uri.endsWith(".css") || uri.endsWith(".js")
-                || uri.endsWith(".png") || uri.endsWith(".ico");
+        for (String prefix : STATIC_PREFIXES) {
+            if (uri.startsWith(prefix)) return true;
+        }
+        for (String suffix : STATIC_SUFFIXES) {
+            if (uri.endsWith(suffix)) return true;
+        }
+        return false;
+    }
+
+    private String maskSensitive(String body) {
+        if (body == null || body.isEmpty()) return body;
+        return SENSITIVE_KEY.matcher(body).replaceAll("$1***");
     }
 
     private String buildMessage(HttpServletRequest request, HttpServletResponse response,
@@ -72,7 +93,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         }
 
         if (body != null && !body.isEmpty()) {
-            sb.append(" | body=").append(body);
+            sb.append(" | body=").append(maskSensitive(body));
         }
 
         String forwarded = request.getHeader("X-Forwarded-For");

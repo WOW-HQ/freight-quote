@@ -79,10 +79,7 @@
             <appender-ref ref="ERROR_FILE"/>
         </root>
 
-        <!-- SQL 日志：mapper 包 DEBUG 级别输出完整 SQL -->
-        <logger name="com.example.test.mapper" level="DEBUG"/>
-
-        <!-- 业务日志：请求过滤 + 控制器 + 服务 -->
+        <!-- 业务日志：请求过滤 + 控制器 + 服务 | mapper 走包级 DEBUG 输出完整 SQL -->
         <logger name="com.example.test.config.RequestLoggingFilter" level="INFO"/>
         <logger name="com.example.test.controller" level="INFO"/>
         <logger name="com.example.test.service" level="INFO"/>
@@ -96,9 +93,7 @@
             <appender-ref ref="ERROR_FILE"/>
         </root>
 
-        <!-- 生产环境 SQL 只输出慢查询候选，mapper 改 TRACE 则彻底关掉 -->
-        <logger name="com.example.test.mapper" level="INFO"/>
-
+        <!-- SQL 生产只输出慢查询候选，包级 INFO 已够用；改为 TRACE 则彻底关掉 -->
         <logger name="com.example.test.config.RequestLoggingFilter" level="INFO"/>
         <logger name="com.example.test.controller" level="INFO"/>
         <logger name="com.example.test.service" level="INFO"/>
